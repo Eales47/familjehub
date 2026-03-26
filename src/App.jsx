@@ -216,14 +216,16 @@ function useIsMobile(breakpoint = 900) {
 
 function MobileBottomNav({ items, activeTab, onChange }) {
   return (
-    <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:40,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(10px)",borderTop:`1px solid ${T.border}`,display:"grid",gridTemplateColumns:`repeat(${Math.min(items.length,5)},1fr)`,gap:0,padding:"8px 8px calc(env(safe-area-inset-bottom, 0px) + 8px)"}}>
-      {items.slice(0,5).map(item=>(
-        <button key={item.id} onClick={()=>onChange(item.id)} style={{background:"transparent",border:"none",padding:"8px 4px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,color:activeTab===item.id?T.accent:T.textMuted,fontWeight:activeTab===item.id?800:700,fontSize:11,position:"relative"}}>
-          <span style={{fontSize:18,lineHeight:1}}>{item.icon}</span>
-          <span>{item.label}</span>
-          {item.badge>0&&<span style={{position:"absolute",top:2,right:"18%",minWidth:18,height:18,borderRadius:999,background:T.red,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:"0 5px",fontSize:10,fontWeight:800}}>{item.badge}</span>}
-        </button>
-      ))}
+    <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:40,background:"rgba(255,255,255,0.97)",backdropFilter:"blur(10px)",borderTop:`1px solid ${T.border}`,padding:"8px 8px calc(env(safe-area-inset-bottom, 0px) + 8px)",overflowX:"auto",overflowY:"hidden",WebkitOverflowScrolling:"touch"}}>
+      <div style={{display:"flex",gap:8,minWidth:"max-content",paddingRight:8}}>
+        {items.map(item=>(
+          <button key={item.id} onClick={()=>onChange(item.id)} style={{background:activeTab===item.id?T.accentSoft:"transparent",border:`1px solid ${activeTab===item.id?T.accent:T.border}`,borderRadius:14,padding:"8px 12px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,color:activeTab===item.id?T.accent:T.textMuted,fontWeight:activeTab===item.id?800:700,fontSize:12,position:"relative",minWidth:88,flexShrink:0,scrollSnapAlign:"start"}}>
+            <span style={{fontSize:17,lineHeight:1}}>{item.icon}</span>
+            <span style={{whiteSpace:"nowrap"}}>{item.label}</span>
+            {item.badge>0&&<span style={{position:"absolute",top:-5,right:-4,minWidth:18,height:18,borderRadius:999,background:T.red,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:"0 5px",fontSize:10,fontWeight:800}}>{item.badge}</span>}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -562,7 +564,7 @@ export default function App() {
   const PAGE_TITLE = {dashboard:"Hem",calendar:"Kalender",meals:"Matsedel",shopping:"Inköpslista",health:"Hälsa & Mediciner",tasks:"Veckouppdrag",chat:"Familjechatt",messages:"Meddelanden",admin:"Familjeadmin",wishes:"Matönskemål",quick:"Snabbåtgärder"};
 
   return (
-    <div style={{display:"flex",minHeight:"100vh",background:T.bg,fontFamily:"'Nunito','Segoe UI',sans-serif",color:T.text,paddingBottom:mobile?"88px":0,overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
+    <div style={{display:"flex",minHeight:"100vh",background:T.bg,fontFamily:"'Nunito','Segoe UI',sans-serif",color:T.text,paddingBottom:mobile?"98px":0,overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');*{box-sizing:border-box;}html,body,#root{margin:0;padding:0;width:100%;max-width:100%;overflow-x:hidden;background:${T.bg};}img,svg,canvas{max-width:100%;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:${T.border};border-radius:3px;}input,select,textarea,button{font-family:inherit;min-width:0;}`}</style>
       {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
 
@@ -612,8 +614,8 @@ export default function App() {
           <div style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
             {mobile && <button onClick={()=>setMobileMenuOpen(true)} style={{width:40,height:40,borderRadius:12,border:`1px solid ${T.border}`,background:T.surface,cursor:"pointer",fontSize:18,flexShrink:0}}>☰</button>}
             <div style={{minWidth:0}}>
-              <h1 style={{margin:0,fontSize:mobile?18:19,fontWeight:800,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{mobile ? `🏡 ${PAGE_TITLE[tab]}` : PAGE_TITLE[tab]}</h1>
-              <div style={{fontSize:11,color:T.textLight,marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{mobile ? `${family.name} · ${today.toLocaleDateString("sv-SE",{month:"short",day:"numeric"})}` : today.toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+              <h1 style={{margin:0,fontSize:mobile?18:19,fontWeight:800,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{PAGE_TITLE[tab]}</h1>
+              <div style={{fontSize:11,color:T.textLight,marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{mobile ? `${family.name} · ${today.toLocaleDateString("sv-SE",{day:"numeric",month:"short"})}` : today.toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
             </div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center",position:"relative",flexShrink:0}}>
@@ -625,6 +627,7 @@ export default function App() {
             {!mobile && <button onClick={()=>setWeatherOpen(true)} style={{display:"flex",alignItems:"center",gap:7,padding:"7px 13px",borderRadius:9,border:`1px solid ${T.border}`,background:T.surface,cursor:"pointer",fontWeight:600,fontSize:13}}>
               {weatherLoading ? "⏳" : weather[0] ? <>{weather[0].icon} {weather[0].high}°</> : "🌤️"} <span style={{color:T.textLight,fontSize:11}}>{city}</span>
             </button>}
+            {mobile && <button onClick={()=>setTab(isParent ? "messages" : "chat")} style={{display:"flex",alignItems:"center",justifyContent:"center",width:42,height:42,borderRadius:12,border:`1px solid ${T.border}`,background:T.surface,cursor:"pointer",fontSize:18,flexShrink:0}} title={isParent ? "Meddelanden" : "Chatt"}>{isParent ? "✉️" : "💬"}</button>}
             <button onClick={()=>setModal("event")} style={{...S.btnPrimary,padding:mobile?"10px 12px":"9px 17px"}}>{mobile?"＋":"＋ Händelse"}</button>
           </div>
         </header>
@@ -640,9 +643,6 @@ export default function App() {
 
         {mobile && (
           <>
-            <div style={{padding:"10px 14px 0"}}>
-              <MobileQuickTabs items={NAV} activeTab={tab} onChange={(next)=>{setTab(next); setMobileMenuOpen(false);}} />
-            </div>
             {mobileMenuOpen && (
               <Overlay onClose={()=>setMobileMenuOpen(false)}>
                 <Box style={{maxWidth:380,padding:"20px 18px 18px"}}>
