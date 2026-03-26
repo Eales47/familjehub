@@ -562,8 +562,8 @@ export default function App() {
   const PAGE_TITLE = {dashboard:"Hem",calendar:"Kalender",meals:"Matsedel",shopping:"Inköpslista",health:"Hälsa & Mediciner",tasks:"Veckouppdrag",chat:"Familjechatt",messages:"Meddelanden",admin:"Familjeadmin",wishes:"Matönskemål",quick:"Snabbåtgärder"};
 
   return (
-    <div style={{display:"flex",minHeight:"100vh",background:T.bg,fontFamily:"'Nunito','Segoe UI',sans-serif",color:T.text,paddingBottom:mobile?"88px":0}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');*{box-sizing:border-box;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:${T.border};border-radius:3px;}input,select,textarea,button{font-family:inherit;}`}</style>
+    <div style={{display:"flex",minHeight:"100vh",background:T.bg,fontFamily:"'Nunito','Segoe UI',sans-serif",color:T.text,paddingBottom:mobile?"88px":0,overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');*{box-sizing:border-box;}html,body,#root{margin:0;padding:0;width:100%;max-width:100%;overflow-x:hidden;background:${T.bg};}img,svg,canvas{max-width:100%;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:${T.border};border-radius:3px;}input,select,textarea,button{font-family:inherit;min-width:0;}`}</style>
       {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
 
       {/* SIDEBAR */}
@@ -678,7 +678,7 @@ export default function App() {
             )}
           </>
         )}
-        <main style={{flex:1,overflowY:"auto",padding:mobile?"14px 14px 24px":"22px 26px"}}>
+        <main style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:mobile?"14px 12px 24px":"22px 26px",width:"100%",maxWidth:"100vw"}}>
           {tab==="dashboard"&&<Dashboard mobile={mobile} user={user} users={users} events={visEvs} weekDates={weekDates} meals={meals} tasks={tasks} meds={meds} shopping={shopping} isParent={isParent} onWeather={()=>setWeatherOpen(true)} setTab={setTab} byId={byId} weather={weather} weatherLoading={weatherLoading} weatherError={weatherError} quickAlerts={quickAlerts} confirmMed={confirmMed} sendReminder={sendReminder} chats={chats} chatMessages={chatMessages} chatReads={chatReads} notify={notify} setTasks={setTasks} openChat={(chatId)=>{ setActiveChatId(chatId); setTab("chat"); }}/>}
           {tab==="calendar"&&<CalendarTab mobile={mobile} user={user} users={users} efd={efd} weekDates={weekDates} weekOff={weekOff} setWeekOff={setWeekOff} isParent={isParent} onAdd={()=>setModal("event")} onRecurring={()=>setModal("recurring")} byId={byId} setEvents={setEvents} notify={notify} weather={weather}/>}
           {tab==="meals"&&<MealsTab meals={meals} setMeals={setMeals} isParent={isParent} notify={notify}/>}
@@ -699,10 +699,10 @@ export default function App() {
       {weatherOpen&&(
         <Overlay onClose={()=>setWeatherOpen(false)}>
           <Box style={{maxWidth:520}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:mobile?"stretch":"center",flexDirection:mobile?"column":"row",gap:mobile?10:0,marginBottom:20}}>
               <div><h2 style={{margin:0,fontSize:18,fontWeight:800}}>🌤️ Väderprognos</h2><p style={{margin:"3px 0 0",fontSize:12,color:T.textMuted}}>Open-Meteo · uppdateras live</p></div>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input value={city} onChange={e=>setCity(e.target.value)} style={{...S.input,width:120,padding:"6px 10px",fontSize:13}} placeholder="Stad..."/>
+              <div style={{display:"flex",gap:8,alignItems:"center",width:mobile?"100%":"auto"}}>
+                <input value={city} onChange={e=>setCity(e.target.value)} style={{...S.input,width:mobile?"100%":120,padding:"6px 10px",fontSize:13}} placeholder="Stad..."/>
                 <IBtn onClick={()=>setWeatherOpen(false)}>✕</IBtn>
               </div>
             </div>
@@ -734,7 +734,7 @@ export default function App() {
                   </div>
 
                   {/* NEXT 3 DAYS */}
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+                  <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(3,1fr)",gap:8,marginBottom:14}}>
                     {rest.slice(0,3).map((w,i)=>(
                       <div key={i} style={{background:T.surfaceAlt,border:`1px solid ${T.border}`,borderRadius:12,padding:"14px 10px",textAlign:"center"}}>
                         <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>{w.day}</div>
@@ -816,7 +816,7 @@ export default function App() {
             <FI label="Telefon" value={editUserData.phone||""} set={v=>setEditUserData(p=>({...p,phone:v}))}/>
             <div style={{marginBottom:18}}>
               <label style={S.lbl}>PIN-kod (4 siffror, lämna tomt = ingen PIN)</label>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{display:"flex",alignItems:mobile?"stretch":"center",flexDirection:mobile?"column":"row",gap:10}}>
                 <input type="password" maxLength={4} inputMode="numeric" pattern="[0-9]*" value={editUserData.pin||""} onChange={e=>setEditUserData(p=>({...p,pin:e.target.value.replace(/\D/g,"").slice(0,4)}))} style={{...S.input,width:120,letterSpacing:6,fontSize:18,textAlign:"center"}} placeholder="––––"/>
                 {editUserData.pin?<span style={{fontSize:12,color:T.green,fontWeight:700}}>🔒 PIN aktiv</span>:<span style={{fontSize:12,color:T.textLight}}>Ingen PIN</span>}
               </div>
@@ -1465,7 +1465,7 @@ function ShoppingTab({ mobile, shopping, setShopping, shopForm, setShopForm, add
             <select value={shopForm.category} onChange={e=>setShopForm({...shopForm,category:e.target.value})} style={{...S.input,flex:1,minWidth:90}}>
               {["Mejeri","Kött","Grönt","Bröd","Torrvaror","Dryck","Fryst","Övrigt"].map(c=><option key={c}>{c}</option>)}
             </select>
-            <button style={S.btnPrimary} onClick={addItem}>Lägg till</button>
+            <button style={{...S.btnPrimary,width:mobile?"100%":"auto"}} onClick={addItem}>Lägg till</button>
           </div>
         </Card>
       )}
@@ -1951,7 +1951,7 @@ function AdminTab({ mobile, family, setFamily, users, setUsers, events, setEvent
           </div>
           <div style={{background:T.surfaceAlt,border:`1px solid ${T.border}`,borderRadius:12,padding:14}}>
             <label style={S.lbl}>Överblick</label>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(3,1fr)",gap:8}}>
               <div style={{background:T.surface,borderRadius:10,padding:10,textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.accent}}>{users.length}</div><div style={{fontSize:11,color:T.textMuted}}>Profiler</div></div>
               <div style={{background:T.surface,borderRadius:10,padding:10,textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.blue}}>{adminCount}</div><div style={{fontSize:11,color:T.textMuted}}>Admins</div></div>
               <div style={{background:T.surface,borderRadius:10,padding:10,textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.green}}>{childCount}</div><div style={{fontSize:11,color:T.textMuted}}>Barn</div></div>
@@ -2019,7 +2019,7 @@ function Box({ title, onClose, children, style={} }) {
   return (
     <div style={{background:T.surface,borderRadius:mobile?16:18,padding:mobile?18:26,width:"100%",maxWidth:mobile?"100%":480,maxHeight:"90vh",overflowY:"auto",boxShadow:T.shadowMd,...style}}>
       {(title||onClose)&&(
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:mobile?"stretch":"center",flexDirection:mobile?"column":"row",gap:mobile?10:0,marginBottom:20}}>
           {title&&<h3 style={{margin:0,fontSize:17,fontWeight:800}}>{title}</h3>}
           {onClose&&<IBtn onClick={onClose}>✕</IBtn>}
         </div>
@@ -2051,7 +2051,7 @@ function FS({ label, value, set, opts }) {
     </div>
   );
 }
-function Row2({ children }) { const mobile = typeof window !== "undefined" ? window.innerWidth < 640 : false; return <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1fr 1fr",gap:12}}>{children}</div>; }
+function Row2({ children }) { const mobile = typeof window !== "undefined" ? window.innerWidth < 760 : false; return <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1fr 1fr",gap:12,width:"100%"}}>{children}</div>; }
 function SelfOnlyAssigned({ user, label="Tilldelade" }) {
   return (
     <div style={{marginBottom:13}}>
@@ -2089,4 +2089,3 @@ const S = {
   input: { width:"100%", background:T.bg, border:`1.5px solid ${T.border}`, borderRadius:7, padding:"9px 13px", color:T.text, fontSize:13, outline:"none" },
   lbl: { display:"block", color:T.textMuted, fontSize:11, fontWeight:700, marginBottom:4, textTransform:"uppercase", letterSpacing:0.5 },
 };
-
