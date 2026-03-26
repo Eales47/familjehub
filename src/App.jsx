@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 const T = {
   bg: "#F7F6F2", surface: "#FFFFFF", surfaceAlt: "#F0EEE9", border: "#E8E4DC",
@@ -203,6 +203,45 @@ function weatherAdvice(code, high, wind, precip) {
   return "Perfekt väder! 🌿";
 }
 
+function useIsMobile(breakpoint = 900) {
+  const getMatch = () => (typeof window !== "undefined" ? window.innerWidth <= breakpoint : false);
+  const [isMobile, setIsMobile] = useState(getMatch);
+  useEffect(() => {
+    const onResize = () => setIsMobile(getMatch());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [breakpoint]);
+  return isMobile;
+}
+
+function MobileBottomNav({ items, activeTab, onChange }) {
+  return (
+    <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:40,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(10px)",borderTop:`1px solid ${T.border}`,display:"grid",gridTemplateColumns:`repeat(${Math.min(items.length,5)},1fr)`,gap:0,padding:"8px 8px calc(env(safe-area-inset-bottom, 0px) + 8px)"}}>
+      {items.slice(0,5).map(item=>(
+        <button key={item.id} onClick={()=>onChange(item.id)} style={{background:"transparent",border:"none",padding:"8px 4px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,color:activeTab===item.id?T.accent:T.textMuted,fontWeight:activeTab===item.id?800:700,fontSize:11,position:"relative"}}>
+          <span style={{fontSize:18,lineHeight:1}}>{item.icon}</span>
+          <span>{item.label}</span>
+          {item.badge>0&&<span style={{position:"absolute",top:2,right:"18%",minWidth:18,height:18,borderRadius:999,background:T.red,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:"0 5px",fontSize:10,fontWeight:800}}>{item.badge}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MobileQuickTabs({ items, activeTab, onChange }) {
+  return (
+    <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:2,marginBottom:14}}>
+      {items.map(item=>(
+        <button key={item.id} onClick={()=>onChange(item.id)} style={{whiteSpace:"nowrap",background:activeTab===item.id?T.accentSoft:T.surface,border:`1px solid ${activeTab===item.id?T.accent:T.border}`,color:activeTab===item.id?T.accent:T.textMuted,borderRadius:999,padding:"9px 12px",fontSize:12,fontWeight:800,display:"inline-flex",alignItems:"center",gap:6,position:"relative"}}>
+          <span>{item.icon}</span><span>{item.label}</span>
+          {item.badge>0&&<span style={{minWidth:18,height:18,borderRadius:999,background:T.red,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:"0 5px",fontSize:10,fontWeight:800}}>{item.badge}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [family, setFamily] = useState(() => ({ ...INITIAL_FAMILY, ...loadStored(STORAGE_KEYS.family, INITIAL_FAMILY) }));
@@ -228,6 +267,8 @@ export default function App() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState("");
   const [weatherOpen, setWeatherOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobile = useIsMobile();
 
   useEffect(() => { saveStored(STORAGE_KEYS.family, family); }, [family]);
   useEffect(() => { saveStored(STORAGE_KEYS.users, users); }, [users]);
@@ -521,12 +562,12 @@ export default function App() {
   const PAGE_TITLE = {dashboard:"Hem",calendar:"Kalender",meals:"Matsedel",shopping:"Inköpslista",health:"Hälsa & Mediciner",tasks:"Veckouppdrag",chat:"Familjechatt",messages:"Meddelanden",admin:"Familjeadmin",wishes:"Matönskemål",quick:"Snabbåtgärder"};
 
   return (
-    <div style={{display:"flex",minHeight:"100vh",background:T.bg,fontFamily:"'Nunito','Segoe UI',sans-serif",color:T.text}}>
+    <div style={{display:"flex",minHeight:"100vh",background:T.bg,fontFamily:"'Nunito','Segoe UI',sans-serif",color:T.text,paddingBottom:mobile?"88px":0}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');*{box-sizing:border-box;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:${T.border};border-radius:3px;}input,select,textarea,button{font-family:inherit;}`}</style>
       {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
 
       {/* SIDEBAR */}
-      <aside style={{width:220,background:T.surface,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0}}>
+      {!mobile && <aside style={{width:220,background:T.surface,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0}}>
         <div style={{padding:"22px 20px 16px",borderBottom:`1px solid ${T.border}`}}>
           <div style={{fontSize:20,fontWeight:800,color:T.accent}}>🏡 {family.name}</div>
           <div style={{fontSize:11,color:T.textLight,marginTop:1}}>Basort: {city}</div>
@@ -563,25 +604,28 @@ export default function App() {
         <div style={{padding:"12px 16px",borderTop:`1px solid ${T.border}`}}>
           <button onClick={()=>setUser(null)} style={{width:"100%",padding:"7px 10px",borderRadius:7,border:`1px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontSize:12,fontWeight:600}}>← Byt profil</button>
         </div>
-      </aside>
+      </aside>}
 
       {/* MAIN AREA */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <header style={{background:T.surface,borderBottom:`1px solid ${T.border}`,padding:"14px 26px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-          <div>
-            <h1 style={{margin:0,fontSize:19,fontWeight:800}}>{PAGE_TITLE[tab]}</h1>
-            <div style={{fontSize:11,color:T.textLight,marginTop:1}}>{today.toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",width:"100%"}}>
+        <header style={{position:mobile?"sticky":"static",top:0,zIndex:30,background:"rgba(255,255,255,0.94)",backdropFilter:mobile?"blur(10px)":"none",borderBottom:`1px solid ${T.border}`,padding:mobile?"12px 14px":"14px 26px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
+            {mobile && <button onClick={()=>setMobileMenuOpen(true)} style={{width:40,height:40,borderRadius:12,border:`1px solid ${T.border}`,background:T.surface,cursor:"pointer",fontSize:18,flexShrink:0}}>☰</button>}
+            <div style={{minWidth:0}}>
+              <h1 style={{margin:0,fontSize:mobile?18:19,fontWeight:800,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{mobile ? `🏡 ${PAGE_TITLE[tab]}` : PAGE_TITLE[tab]}</h1>
+              <div style={{fontSize:11,color:T.textLight,marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{mobile ? `${family.name} · ${today.toLocaleDateString("sv-SE",{month:"short",day:"numeric"})}` : today.toLocaleDateString("sv-SE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+            </div>
           </div>
-          <div style={{display:"flex",gap:8,alignItems:"center",position:"relative"}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",position:"relative",flexShrink:0}}>
             <button onClick={()=>setNotificationsOpen(v=>!v)} style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",width:42,height:42,borderRadius:12,border:`1px solid ${notificationsOpen ? T.accent : T.border}`,background:notificationsOpen ? T.accentSoft : T.surface,cursor:"pointer",fontSize:18}}>
               🔔
               {notificationBadge>0 && <span style={{position:"absolute",top:-4,right:-4,minWidth:20,height:20,borderRadius:999,background:T.red,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:"0 6px",fontSize:10,fontWeight:800}}>{notificationBadge}</span>}
             </button>
             {notificationsOpen && <NotificationCenter notifications={notifications} seenNotifications={seenNotifications} onClickItem={handleNotificationClick} onClose={()=>setNotificationsOpen(false)} onMarkAllRead={markAllNotificationsRead} />}
-            <button onClick={()=>setWeatherOpen(true)} style={{display:"flex",alignItems:"center",gap:7,padding:"7px 13px",borderRadius:9,border:`1px solid ${T.border}`,background:T.surface,cursor:"pointer",fontWeight:600,fontSize:13}}>
+            {!mobile && <button onClick={()=>setWeatherOpen(true)} style={{display:"flex",alignItems:"center",gap:7,padding:"7px 13px",borderRadius:9,border:`1px solid ${T.border}`,background:T.surface,cursor:"pointer",fontWeight:600,fontSize:13}}>
               {weatherLoading ? "⏳" : weather[0] ? <>{weather[0].icon} {weather[0].high}°</> : "🌤️"} <span style={{color:T.textLight,fontSize:11}}>{city}</span>
-            </button>
-            <button onClick={()=>setModal("event")} style={S.btnPrimary}>＋ Händelse</button>
+            </button>}
+            <button onClick={()=>setModal("event")} style={{...S.btnPrimary,padding:mobile?"10px 12px":"9px 17px"}}>{mobile?"＋":"＋ Händelse"}</button>
           </div>
         </header>
 
@@ -593,20 +637,63 @@ export default function App() {
           </div>
         )}
 
-        <main style={{flex:1,overflowY:"auto",padding:"22px 26px"}}>
-          {tab==="dashboard"&&<Dashboard user={user} users={users} events={visEvs} weekDates={weekDates} meals={meals} tasks={tasks} meds={meds} shopping={shopping} isParent={isParent} onWeather={()=>setWeatherOpen(true)} setTab={setTab} byId={byId} weather={weather} weatherLoading={weatherLoading} weatherError={weatherError} quickAlerts={quickAlerts} confirmMed={confirmMed} sendReminder={sendReminder} chats={chats} chatMessages={chatMessages} chatReads={chatReads} notify={notify} setTasks={setTasks} openChat={(chatId)=>{ setActiveChatId(chatId); setTab("chat"); }}/>}
-          {tab==="calendar"&&<CalendarTab user={user} users={users} efd={efd} weekDates={weekDates} weekOff={weekOff} setWeekOff={setWeekOff} isParent={isParent} onAdd={()=>setModal("event")} onRecurring={()=>setModal("recurring")} byId={byId} setEvents={setEvents} notify={notify} weather={weather}/>}
+
+        {mobile && (
+          <>
+            <div style={{padding:"10px 14px 0"}}>
+              <MobileQuickTabs items={NAV} activeTab={tab} onChange={(next)=>{setTab(next); setMobileMenuOpen(false);}} />
+            </div>
+            {mobileMenuOpen && (
+              <Overlay onClose={()=>setMobileMenuOpen(false)}>
+                <Box style={{maxWidth:380,padding:"20px 18px 18px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+                    <div>
+                      <div style={{fontWeight:800,fontSize:18}}>🏡 {family.name}</div>
+                      <div style={{fontSize:12,color:T.textMuted,marginTop:3}}>{user.avatar} {user.name} · {isParent?"Admin":"Barn"}</div>
+                    </div>
+                    <IBtn onClick={()=>setMobileMenuOpen(false)}>✕</IBtn>
+                  </div>
+                  <div style={{display:"grid",gap:8,marginBottom:14}}>
+                    {NAV.map(n=>(
+                      <button key={n.id} onClick={()=>{setTab(n.id); setMobileMenuOpen(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,border:`1px solid ${tab===n.id?T.accent:T.border}`,background:tab===n.id?T.accentSoft:T.surfaceAlt,color:tab===n.id?T.accent:T.text,fontWeight:800,fontSize:13}}>
+                        <span style={{fontSize:18}}>{n.icon}</span><span style={{flex:1,textAlign:"left"}}>{n.label}</span>
+                        {n.badge>0&&<span style={{minWidth:20,height:20,borderRadius:999,background:T.red,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:"0 6px",fontSize:10,fontWeight:800}}>{n.badge}</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(74px,1fr))",gap:8,marginBottom:14}}>
+                    {users.map(u=>(
+                      <button key={u.id} onClick={()=>{setUser(u); setMobileMenuOpen(false);}} style={{background:user.id===u.id?u.color+"22":T.surfaceAlt,border:`1px solid ${user.id===u.id?u.color:T.border}`,borderRadius:12,padding:"10px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:24}}>{u.avatar}</span>
+                        <span style={{fontSize:11,fontWeight:800,color:user.id===u.id?u.color:T.text}}>{u.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>{setWeatherOpen(true); setMobileMenuOpen(false);}} style={{...S.btnSec,flex:1}}>🌤️ Väder</button>
+                    <button onClick={()=>{setUser(null); setMobileMenuOpen(false);}} style={{...S.btnSec,flex:1}}>← Byt profil</button>
+                  </div>
+                </Box>
+              </Overlay>
+            )}
+          </>
+        )}
+        <main style={{flex:1,overflowY:"auto",padding:mobile?"14px 14px 24px":"22px 26px"}}>
+          {tab==="dashboard"&&<Dashboard mobile={mobile} user={user} users={users} events={visEvs} weekDates={weekDates} meals={meals} tasks={tasks} meds={meds} shopping={shopping} isParent={isParent} onWeather={()=>setWeatherOpen(true)} setTab={setTab} byId={byId} weather={weather} weatherLoading={weatherLoading} weatherError={weatherError} quickAlerts={quickAlerts} confirmMed={confirmMed} sendReminder={sendReminder} chats={chats} chatMessages={chatMessages} chatReads={chatReads} notify={notify} setTasks={setTasks} openChat={(chatId)=>{ setActiveChatId(chatId); setTab("chat"); }}/>}
+          {tab==="calendar"&&<CalendarTab mobile={mobile} user={user} users={users} efd={efd} weekDates={weekDates} weekOff={weekOff} setWeekOff={setWeekOff} isParent={isParent} onAdd={()=>setModal("event")} onRecurring={()=>setModal("recurring")} byId={byId} setEvents={setEvents} notify={notify} weather={weather}/>}
           {tab==="meals"&&<MealsTab meals={meals} setMeals={setMeals} isParent={isParent} notify={notify}/>}
-          {tab==="shopping"&&<ShoppingTab shopping={shopping} setShopping={setShopping} shopForm={shopForm} setShopForm={setShopForm} addItem={()=>{ if(!shopForm.item)return; setShopping(p=>[...p,{...shopForm,id:Date.now(),done:false}]); setShopForm({item:"",qty:"",category:"Övrigt"}); notify("🛒 Tillagd!"); }} isParent={isParent} notify={notify}/>}
-          {tab==="health"&&<HealthTab meds={meds} setMeds={setMeds} users={users} isParent={isParent} user={user} medForm={medForm} setMedForm={setMedForm} addMed={()=>{ if(!medForm.name)return; const normalizedTimes = normalizeMedTimes(medForm.times); if(!normalizedTimes.length){ notify("⚠️ Lägg in minst en tid."); return; } setMeds(p=>[...p,{...medForm,id:Date.now(),times:normalizedTimes,active:true,confirms:{}}]); setMedForm({name:"",dose:"",times:"08:00",assignedTo:3,recurring:true,scheduleType:"daily",startDate:todayStr,endDate:""}); notify("💊 Medicin tillagd!"); }} notify={notify} sendReminder={sendReminder} confirmMed={confirmMed}/>}
+          {tab==="shopping"&&<ShoppingTab mobile={mobile} shopping={shopping} setShopping={setShopping} shopForm={shopForm} setShopForm={setShopForm} addItem={()=>{ if(!shopForm.item)return; setShopping(p=>[...p,{...shopForm,id:Date.now(),done:false}]); setShopForm({item:"",qty:"",category:"Övrigt"}); notify("🛒 Tillagd!"); }} isParent={isParent} notify={notify}/>}
+          {tab==="health"&&<HealthTab mobile={mobile} meds={meds} setMeds={setMeds} users={users} isParent={isParent} user={user} medForm={medForm} setMedForm={setMedForm} addMed={()=>{ if(!medForm.name)return; const normalizedTimes = normalizeMedTimes(medForm.times); if(!normalizedTimes.length){ notify("⚠️ Lägg in minst en tid."); return; } setMeds(p=>[...p,{...medForm,id:Date.now(),times:normalizedTimes,active:true,confirms:{}}]); setMedForm({name:"",dose:"",times:"08:00",assignedTo:3,recurring:true,scheduleType:"daily",startDate:todayStr,endDate:""}); notify("💊 Medicin tillagd!"); }} notify={notify} sendReminder={sendReminder} confirmMed={confirmMed}/>}
           {tab==="tasks"&&<TasksTab tasks={tasks} setTasks={setTasks} users={users} isParent={isParent} user={user} notify={notify} onAdd={()=>setModal("task")}/>}
-          {tab==="chat"&&<ChatTab user={user} users={users} isParent={isParent} chats={chats} chatMessages={chatMessages} chatReads={chatReads} onCreateChat={createChat} onSendMessage={sendChatMessage} onReadChat={markChatRead} initialChatId={activeChatId} onConsumeInitialChat={()=>setActiveChatId(null)}/>}
-          {tab==="messages"&&isParent&&<MessagesTab wishes={wishes} quickAlerts={quickAlerts} users={users} setWishes={setWishes} setQuickAlerts={setQuickAlerts} onSms={()=>setModal("sms")}/>}
-          {tab==="admin"&&isParent&&<AdminTab family={family} setFamily={setFamily} users={users} setUsers={setUsers} events={events} setEvents={setEvents} onAddUser={()=>setModal("user")} onSms={()=>setModal("sms")} notify={notify} onEditUser={u=>{setEditUserData({...u});setModal("editUser");}} onDeleteUser={id=>{if(users.length<=1)return; const target=users.find(u=>u.id===id); const adminCount=users.filter(isAdminUser).length; if(target?.role==="parent"&&adminCount<=1){ notify("⚠️ Minst en admin måste finnas kvar."); return; } setUsers(p=>p.filter(u=>u.id!==id)); notify("🗑️ Familjemedlem borttagen");}} onResetDemo={()=>{ setFamily(INITIAL_FAMILY); setUsers(INITIAL_USERS); setEvents(INITIAL_EVENTS); setMeals(MEAL_INIT); setShopping(SHOP_INIT); setMeds(MEDS_INIT); setWishes(WISHES_INIT); setTasks(TASKS_INIT); setQuickAlerts(QUICK_INIT); setChats(CHAT_INIT); setChatMessages(CHAT_MESSAGES_INIT); setChatReads(CHAT_READS_INIT); setSeenNotifications([]); setNotificationsOpen(false); setActiveChatId(null); setUser(null); setTab("dashboard"); Object.values(STORAGE_KEYS).forEach(k=>window.localStorage.removeItem(k)); notify("♻️ Demo-data återställd"); }}/>}
-          {tab==="wishes"&&!isParent&&<WishesTab user={user} wishes={wishes} onAdd={()=>setModal("wish")}/>}
-          {tab==="quick"&&!isParent&&<QuickTab user={user} onSend={sendQuickAction}/>}
+          {tab==="chat"&&<ChatTab mobile={mobile} user={user} users={users} isParent={isParent} chats={chats} chatMessages={chatMessages} chatReads={chatReads} onCreateChat={createChat} onSendMessage={sendChatMessage} onReadChat={markChatRead} initialChatId={activeChatId} onConsumeInitialChat={()=>setActiveChatId(null)}/>}
+          {tab==="messages"&&isParent&&<MessagesTab mobile={mobile} wishes={wishes} quickAlerts={quickAlerts} users={users} setWishes={setWishes} setQuickAlerts={setQuickAlerts} onSms={()=>setModal("sms")}/>}
+          {tab==="admin"&&isParent&&<AdminTab mobile={mobile} family={family} setFamily={setFamily} users={users} setUsers={setUsers} events={events} setEvents={setEvents} onAddUser={()=>setModal("user")} onSms={()=>setModal("sms")} notify={notify} onEditUser={u=>{setEditUserData({...u});setModal("editUser");}} onDeleteUser={id=>{if(users.length<=1)return; const target=users.find(u=>u.id===id); const adminCount=users.filter(isAdminUser).length; if(target?.role==="parent"&&adminCount<=1){ notify("⚠️ Minst en admin måste finnas kvar."); return; } setUsers(p=>p.filter(u=>u.id!==id)); notify("🗑️ Familjemedlem borttagen");}} onResetDemo={()=>{ setFamily(INITIAL_FAMILY); setUsers(INITIAL_USERS); setEvents(INITIAL_EVENTS); setMeals(MEAL_INIT); setShopping(SHOP_INIT); setMeds(MEDS_INIT); setWishes(WISHES_INIT); setTasks(TASKS_INIT); setQuickAlerts(QUICK_INIT); setChats(CHAT_INIT); setChatMessages(CHAT_MESSAGES_INIT); setChatReads(CHAT_READS_INIT); setSeenNotifications([]); setNotificationsOpen(false); setActiveChatId(null); setUser(null); setTab("dashboard"); Object.values(STORAGE_KEYS).forEach(k=>window.localStorage.removeItem(k)); notify("♻️ Demo-data återställd"); }}/>}
+          {tab==="wishes"&&!isParent&&<WishesTab mobile={mobile} user={user} wishes={wishes} onAdd={()=>setModal("wish")}/>}
+          {tab==="quick"&&!isParent&&<QuickTab mobile={mobile} user={user} onSend={sendQuickAction}/>}
         </main>
       </div>
+
+      {mobile && <MobileBottomNav items={NAV} activeTab={tab} onChange={(next)=>setTab(next)} />}
 
       {/* WEATHER MODAL */}
       {weatherOpen&&(
@@ -895,7 +982,7 @@ function LoginScreen({ users, family, onLogin }) {
             <p style={{color:T.textMuted,margin:"8px 0 0",fontSize:14}}>Välj din profil för att fortsätta</p>
             <p style={{color:T.textLight,margin:"4px 0 0",fontSize:12}}>Vuxna är admins för hela familjegruppen</p>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,maxWidth:580,width:"100%"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,maxWidth:580,width:"100%",gridTemplateColumns:typeof window!=="undefined" && window.innerWidth < 640 ? "1fr 1fr" : "repeat(auto-fit,minmax(140px,1fr))"}}>
             {users.map(u=>(
               <button key={u.id} onClick={()=>handleSelect(u)} style={{background:T.surface,border:`2px solid ${T.border}`,borderRadius:16,padding:"20px 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:9,boxShadow:T.shadow,transition:"all 0.15s"}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=u.color;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 24px ${u.color}33`;}}
@@ -944,7 +1031,7 @@ function LoginScreen({ users, family, onLogin }) {
 }
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
-function Dashboard({ user, users, events, weekDates, meals, tasks, meds, shopping, isParent, onWeather, setTab, byId, weather, weatherLoading, weatherError, quickAlerts, confirmMed, sendReminder, chats, chatMessages, chatReads, notify, setTasks, openChat }) {
+function Dashboard({ mobile, user, users, events, weekDates, meals, tasks, meds, shopping, isParent, onWeather, setTab, byId, weather, weatherLoading, weatherError, quickAlerts, confirmMed, sendReminder, chats, chatMessages, chatReads, notify, setTasks, openChat }) {
   const todayEvs=events.filter(e=>e.date===todayStr).sort((a,b)=>a.time.localeCompare(b.time));
   const dayIdx=(today.getDay()+6)%7;
   const todayMeal=meals[WDF[dayIdx]]||"Ej planerat";
@@ -998,7 +1085,7 @@ function Dashboard({ user, users, events, weekDates, meals, tasks, meds, shoppin
   }
 
   return (
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:16}}>
+    <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(auto-fill,minmax(260px,1fr))",gap:16}}>
       <Card style={{gridColumn:"1/-1",background:`linear-gradient(120deg,${user.color}18,${T.surface})`,border:`1px solid ${user.color}33`}}>
         <div style={{display:"flex",alignItems:"center",gap:14}}>
           <div style={{width:56,height:56,borderRadius:"50%",background:user.color+"22",border:`3px solid ${user.color}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{user.avatar}</div>
@@ -1255,7 +1342,7 @@ function Dashboard({ user, users, events, weekDates, meals, tasks, meds, shoppin
   );
 }
 
-function CalendarTab({ user, users, efd, weekDates, weekOff, setWeekOff, isParent, onAdd, onRecurring, byId, setEvents, notify, weather }) {
+function CalendarTab({ mobile, user, users, efd, weekDates, weekOff, setWeekOff, isParent, onAdd, onRecurring, byId, setEvents, notify, weather }) {
   const [sel, setSel] = useState(null);
   return (
     <div>
@@ -1270,7 +1357,7 @@ function CalendarTab({ user, users, efd, weekDates, weekOff, setWeekOff, isParen
           <button style={{...S.btnPrimary,background:T.purpleSoft,color:T.purple}} onClick={onRecurring}>🔁 Återkommande</button>
         </div>}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,marginBottom:18}}>
+      <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(7,1fr)",gap:6,marginBottom:18}}>
         {weekDates.map((date,i)=>{
           const devs=efd(date); const isToday=isSameDay(date,today); const w=weather[i];
           return (
@@ -1343,7 +1430,7 @@ function MealsTab({ meals, setMeals, isParent, notify }) {
 }
 
 // ─── SHOPPING ────────────────────────────────────────────────────────────────
-function ShoppingTab({ shopping, setShopping, shopForm, setShopForm, addItem, isParent, notify }) {
+function ShoppingTab({ mobile, shopping, setShopping, shopForm, setShopForm, addItem, isParent, notify }) {
   const cats=[...new Set(shopping.map(s=>s.category))];
   const done=shopping.filter(s=>s.done).length;
   const pct=Math.round((done/Math.max(shopping.length,1))*100);
@@ -1372,7 +1459,7 @@ function ShoppingTab({ shopping, setShopping, shopForm, setShopForm, addItem, is
       {isParent&&(
         <Card>
           <CT>➕ Lägg till vara</CT>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",flexDirection:mobile?"column":"row"}}>
             <input placeholder="Vara..." value={shopForm.item} onChange={e=>setShopForm({...shopForm,item:e.target.value})} style={{...S.input,flex:2,minWidth:100}} onKeyDown={e=>e.key==="Enter"&&addItem()}/>
             <input placeholder="Mängd..." value={shopForm.qty} onChange={e=>setShopForm({...shopForm,qty:e.target.value})} style={{...S.input,flex:1,minWidth:70}}/>
             <select value={shopForm.category} onChange={e=>setShopForm({...shopForm,category:e.target.value})} style={{...S.input,flex:1,minWidth:90}}>
@@ -1387,7 +1474,7 @@ function ShoppingTab({ shopping, setShopping, shopForm, setShopForm, addItem, is
 }
 
 // ─── HEALTH ──────────────────────────────────────────────────────────────────
-function HealthTab({ meds, setMeds, users, isParent, user, medForm, setMedForm, addMed, notify, sendReminder, confirmMed }) {
+function HealthTab({ mobile, meds, setMeds, users, isParent, user, medForm, setMedForm, addMed, notify, sendReminder, confirmMed }) {
   const vis=isParent?meds:meds.filter(m=>m.assignedTo===user.id);
   return (
     <div>
@@ -1448,7 +1535,7 @@ function HealthTab({ meds, setMeds, users, isParent, user, medForm, setMedForm, 
       {isParent&&(
         <Card>
           <CT>➕ Ny medicin</CT>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={S.lbl}>Medicin</label><input value={medForm.name} onChange={e=>setMedForm({...medForm,name:e.target.value})} style={S.input}/></div>
             <div><label style={S.lbl}>Dos</label><input value={medForm.dose} onChange={e=>setMedForm({...medForm,dose:e.target.value})} style={S.input}/></div>
             <div><label style={S.lbl}>Schema</label><select value={medForm.scheduleType} onChange={e=>{ const v=e.target.value; setMedForm({...medForm,scheduleType:v, recurring:v!=="once", times:v==="twice_daily"?"08:00, 20:00":medForm.times||"08:00"}); }} style={S.input}><option value="daily">Dagligen</option><option value="twice_daily">2 gånger per dag</option><option value="custom">Egna tider</option><option value="once">Engångsmedicin</option></select></div>
@@ -1515,7 +1602,7 @@ function TR({ t, setTasks, notify, isParent, user }) {
 }
 
 // ─── CHAT ────────────────────────────────────────────────────────────────────
-function ChatTab({ user, users, isParent, chats, chatMessages, chatReads, onCreateChat, onSendMessage, onReadChat, initialChatId, onConsumeInitialChat }) {
+function ChatTab({ mobile, user, users, isParent, chats, chatMessages, chatReads, onCreateChat, onSendMessage, onReadChat, initialChatId, onConsumeInitialChat }) {
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [draft, setDraft] = useState("");
   const [showComposer, setShowComposer] = useState(false);
@@ -1649,8 +1736,8 @@ function ChatTab({ user, users, isParent, chats, chatMessages, chatReads, onCrea
         </Card>
       )}
 
-      <div style={{display:"grid",gridTemplateColumns:"320px 1fr",gap:16,alignItems:"start"}}>
-        <Card>
+      <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"320px 1fr",gap:16,alignItems:"start"}}>
+        <Card style={mobile && activeChat ? {display:"none"} : {}}>
           <CT>Chattar</CT>
           {visibleChats.length===0 && <p style={{color:T.textLight,fontSize:13}}>Inga chattar än.</p>}
           <div style={{fontSize:11,color:T.textMuted,fontWeight:700,marginBottom:8}}>DINA CHATTER</div>
@@ -1698,14 +1785,14 @@ function ChatTab({ user, users, isParent, chats, chatMessages, chatReads, onCrea
           )}
         </Card>
 
-        <Card>
+        <Card style={mobile && !activeChat ? {display:"none"} : {}}>
           {!activeChat ? (
             <p style={{color:T.textLight}}>Välj en chatt i listan.</p>
           ) : (
             <>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:12,flexWrap:"wrap"}}>
                 <div>
-                  <div style={{fontWeight:800,fontSize:17}}>{chatTitle(activeChat)}</div>
+                  {mobile && <button onClick={()=>setSelectedChatId(null)} style={{...S.btnSm,marginBottom:8}}>← Chattar</button>}<div style={{fontWeight:800,fontSize:17}}>{chatTitle(activeChat)}</div>
                   <div style={{fontSize:12,color:T.textMuted}}>{activeChat.memberIds.map(id => `${getUser(id)?.avatar || ""} ${getUser(id)?.name || "Okänd"}`).join(" · ")}</div>
                 </div>
                 <span style={{fontSize:11,background:T.surfaceAlt,border:`1px solid ${T.border}`,padding:"4px 10px",borderRadius:999,fontWeight:700}}>{activeChat.type === "group" ? "Gruppchatt" : "Direktchatt"}</span>
@@ -1740,7 +1827,7 @@ function ChatTab({ user, users, isParent, chats, chatMessages, chatReads, onCrea
 }
 
 // ─── MESSAGES ────────────────────────────────────────────────────────────────
-function MessagesTab({ wishes, quickAlerts, users, setWishes, setQuickAlerts, onSms }) {
+function MessagesTab({ mobile, wishes, quickAlerts, users, setWishes, setQuickAlerts, onSms }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
@@ -1784,7 +1871,7 @@ function MessagesTab({ wishes, quickAlerts, users, setWishes, setQuickAlerts, on
 }
 
 // ─── WISHES ──────────────────────────────────────────────────────────────────
-function WishesTab({ user, wishes, onAdd }) {
+function WishesTab({ mobile, user, wishes, onAdd }) {
   const mine=wishes.filter(w=>w.from===user.id);
   return (
     <div>
@@ -1805,7 +1892,7 @@ function WishesTab({ user, wishes, onAdd }) {
 }
 
 // ─── QUICK ───────────────────────────────────────────────────────────────────
-function QuickTab({ user, onSend }) {
+function QuickTab({ mobile, user, onSend }) {
   const actions=[
     {id:"late",icon:"🕐",label:"Jag är sen hem",desc:"Meddelar föräldrarna",c:T.yellow,s:T.yellowSoft,message:"🕐 Jag är sen hem!"},
     {id:"pickup",icon:"🚗",label:"Hämta mig!",desc:"Be om skjuts",c:T.blue,s:T.blueSoft,message:"🚗 Hämta mig!"},
@@ -1819,7 +1906,7 @@ function QuickTab({ user, onSend }) {
         <div style={{color:T.textMuted,fontSize:13,marginTop:3}}>Tryck för att direkt meddela föräldrarna</div>
         <div style={{fontSize:11,color:T.textLight,marginTop:8}}>Skickas som en notis från {user.avatar} {user.name} till familjens admins.</div>
       </Card>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(auto-fill,minmax(190px,1fr))",gap:12}}>
         {actions.map(a=>(
           <button key={a.id} onClick={()=>onSend(a)}
             style={{background:a.s,border:`2px solid ${a.c}33`,borderRadius:14,padding:"20px 16px",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}
@@ -1836,7 +1923,7 @@ function QuickTab({ user, onSend }) {
 }
 
 // ─── ADMIN ───────────────────────────────────────────────────────────────────
-function AdminTab({ family, setFamily, users, setUsers, events, setEvents, onAddUser, onSms, notify, getUser, onEditUser, onDeleteUser, onResetDemo }) {
+function AdminTab({ mobile, family, setFamily, users, setUsers, events, setEvents, onAddUser, onSms, notify, getUser, onEditUser, onDeleteUser, onResetDemo }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const adminCount = users.filter(isAdminUser).length;
   const childCount = users.filter(u=>u.role==="child").length;
@@ -1848,7 +1935,7 @@ function AdminTab({ family, setFamily, users, setUsers, events, setEvents, onAdd
       </div>
       <Card>
         <CT>🛡️ Familjegrupp & roller</CT>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(auto-fit,minmax(220px,1fr))",gap:12}}>
           <div style={{background:T.surfaceAlt,border:`1px solid ${T.border}`,borderRadius:12,padding:14}}>
             <label style={S.lbl}>Familjenamn</label>
             <input value={family.name} onChange={e=>setFamily(p=>({...p,name:e.target.value}))} style={S.input} placeholder="Familjenamn"/>
@@ -1922,14 +2009,15 @@ function AdminTab({ family, setFamily, users, setUsers, events, setEvents, onAdd
 // ─── SHARED COMPONENTS ───────────────────────────────────────────────────────
 function Overlay({ children, onClose }) {
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}} onClick={onClose}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:12,backdropFilter:"blur(4px)"}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()}>{children}</div>
     </div>
   );
 }
 function Box({ title, onClose, children, style={} }) {
+  const mobile = typeof window !== "undefined" ? window.innerWidth < 640 : false;
   return (
-    <div style={{background:T.surface,borderRadius:18,padding:26,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",boxShadow:T.shadowMd,...style}}>
+    <div style={{background:T.surface,borderRadius:mobile?16:18,padding:mobile?18:26,width:"100%",maxWidth:mobile?"100%":480,maxHeight:"90vh",overflowY:"auto",boxShadow:T.shadowMd,...style}}>
       {(title||onClose)&&(
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           {title&&<h3 style={{margin:0,fontSize:17,fontWeight:800}}>{title}</h3>}
@@ -1963,7 +2051,7 @@ function FS({ label, value, set, opts }) {
     </div>
   );
 }
-function Row2({ children }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{children}</div>; }
+function Row2({ children }) { const mobile = typeof window !== "undefined" ? window.innerWidth < 640 : false; return <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1fr 1fr",gap:12}}>{children}</div>; }
 function SelfOnlyAssigned({ user, label="Tilldelade" }) {
   return (
     <div style={{marginBottom:13}}>
@@ -2001,3 +2089,4 @@ const S = {
   input: { width:"100%", background:T.bg, border:`1.5px solid ${T.border}`, borderRadius:7, padding:"9px 13px", color:T.text, fontSize:13, outline:"none" },
   lbl: { display:"block", color:T.textMuted, fontSize:11, fontWeight:700, marginBottom:4, textTransform:"uppercase", letterSpacing:0.5 },
 };
+
